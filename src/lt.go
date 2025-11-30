@@ -110,7 +110,7 @@ func linkServerDemux(video *Video) (vBytes, aBytes []byte) {
             return nil, nil
         }
         if mt == websocket.TextMessage {
-            // 可选：FmtPrint("欢迎：", string(resp))
+            FmtPrint("欢迎：", string(resp))
         }
     }
 

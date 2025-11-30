@@ -87,13 +87,10 @@ func linkServerDemux(video *Video) (vBytes, aBytes []byte) {
     header.Set("Accept-Language", "zh-CN,zh;q=0.9")
     // 如后端要求 Referer/Cookie，可在此补充
 
-    conn, resp, err := dialer.Dial(u.String(), header)
+    // 修复：丢弃 resp，避免“未使用变量”编译错误
+    conn, _, err := dialer.Dial(u.String(), header)
     if err != nil {
-        status := ""
-        if resp != nil {
-            status = resp.Status
-        }
-        FmtPrint(fmt.Sprintf("无法连接到服务器: %v; HTTP状态: %s", err, status))
+        FmtPrint(fmt.Sprintf("无法连接到服务器: %v", err))
         return nil, nil
     }
     defer conn.Close()

@@ -37,8 +37,7 @@ jobs:
         run: |
           mkdir -p "$GITHUB_WORKSPACE/build"
           OUT="$GITHUB_WORKSPACE/build/unicomMonitor_windows_amd64.exe"
-          # 在 src 目录构建（如果你的 main 在 src）
-          go build -ldflags="-w -s" -trimpath -o "$OUT" -C src
+          (cd src && go build -ldflags="-w -s" -trimpath -o "$OUT")
           zip -j "${OUT}.zip" "$OUT"
           rm "$OUT"
 

@@ -4,8 +4,20 @@ name: Release (Windows amd64)
 on:
   push:
     tags:
-      - 'v*'   # 自动触发：推送 tag，例如 v1.0.0
-  workflow_dispatch: {}  # 手动触发
+      - 'v*'   # 自动触发：推送以 v 开头的 tag（例如 v1.0.0）
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag (e.g., v1.0.0). Required for manual runs.'
+        required: true
+      name:
+        description: 'Release title (default: same as tag)'
+        required: false
+      prerelease:
+        description: 'Mark this release as a prerelease'
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -17,6 +29,32 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      # 计算 TAG 与 RELEASE_NAME
+      - name: Resolve tag and release name
+        id: meta
+        run: |
+          # 如果是由 tag push 触发，直接使用 github.ref_name；否则用手动输入的 tag
+          if [ "${{ github.event_name }}" = "push" ] && [ "${{ github.ref_type }}" = "tag" ]; then
+            TAG="${{ github.ref_name }}"
+          else
+            TAG="${{ inputs.tag }}"
+          fi
+
+          if [ -z "$TAG" ]; then
+            echo "Error: TAG is empty. For manual runs, please provide 'tag' input (e.g., v1.0.0)." >&2
+            exit 1
+          fi
+
+          # 计算 Release 名称（可来自 inputs.name，默认为 TAG）
+          if [ -n "${{ inputs.name }}" ]; then
+            REL_NAME="${{ inputs.name }}"
+          else
+            REL_NAME="$TAG"
+          fi
+
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+          echo "rel_name=$REL_NAME" >> $GITHUB_OUTPUT
 
       - name: Set up Go
         uses: actions/setup-go@v5
@@ -37,6 +75,7 @@ jobs:
         run: |
           mkdir -p "$GITHUB_WORKSPACE/build"
           OUT="$GITHUB_WORKSPACE/build/unicomMonitor_windows_amd64.exe"
+          # 在 src 目录构建（确保你的 main 在 src/）
           (cd src && go build -ldflags="-w -s" -trimpath -o "$OUT")
           zip -j "${OUT}.zip" "$OUT"
           rm "$OUT"
@@ -44,16 +83,22 @@ jobs:
       - name: Create Release and upload assets
         uses: softprops/action-gh-release@v2
         with:
-          files: build/*.zip
-          name: ${{ github.ref_name }}
+          # 指定要绑定的 tag（手动或自动）
+          tag_name: ${{ steps.meta.outputs.tag }}
+          name: ${{ steps.meta.outputs.rel_name }}
           body: |
-            Automated release for tag ${{ github.ref_name }}.
+            Automated release for tag ${{ steps.meta.outputs.tag }}.
             Includes Windows amd64 build only.
+          prerelease: ${{ inputs.prerelease }}
+          files: |
+            build/*.zip
+          overwrite_files: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      # 可选：也上传到 workflow artifacts，方便在 Actions 页面下载
       - name: Upload build artifacts (optional)
         uses: actions/upload-artifact@v4
         with:
-          name: unicomMonitor-${{ github.ref_name }}
+          name: unicomMonitor-${{ steps.meta.outputs.tag }}
           path: build/*.zip

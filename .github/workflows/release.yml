@@ -1,11 +1,11 @@
 
-name: Release
+name: Release (Windows amd64 via build.sh)
 
 on:
   push:
     tags:
-      - 'v*'   # 自动触发：推送 tag
-  workflow_dispatch: {}  # 手动触发
+      - 'v*'
+  workflow_dispatch: {}
 
 permissions:
   contents: write
@@ -32,6 +32,14 @@ jobs:
       - name: Make build script executable
         run: chmod +x build.sh
 
+      - name: Limit build.sh to Windows amd64 only
+        run: |
+          # 仅保留 windows amd64；其他平台清空，避免循环执行
+          sed -i 's/^windows_archs=.*/windows_archs="amd64"/' build.sh
+          sed -i 's/^linux_archs=.*/linux_archs=""/' build.sh
+          sed -i 's/^darwin_archs=.*/darwin_archs=""/' build.sh
+          sed -i 's/^freebsd_archs=.*/freebsd_archs=""/' build.sh
+
       - name: Build with script
         run: ./build.sh
         shell: bash
@@ -43,7 +51,7 @@ jobs:
           name: ${{ github.ref_name }}
           body: |
             Automated release for tag ${{ github.ref_name }}.
-            Includes multi-platform builds.
+            Includes Windows amd64 build only.
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

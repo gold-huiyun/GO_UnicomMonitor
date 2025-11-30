@@ -24,11 +24,6 @@ jobs:
           go-version: '1.22.x'
           cache: true
 
-      - name: Configure CN GOPROXY
-        run: |
-          echo "GOPROXY=https://goproxy.cn,direct" >> $GITHUB_ENV
-          echo "GO111MODULE=on" >> $GITHUB_ENV
-
       - name: Ensure zip available
         run: |
           sudo apt-get update

@@ -6,9 +6,9 @@ rootPath=$(pwd)
 outPath="$rootPath/build/unicomMonitor_"
 # 编译目标平台
 windows_archs="386 amd64 arm64"
-linux_archs="386 amd64 arm64 mips mipsle mips64 mips64le"
-darwin_archs="amd64 arm64"
-freebsd_archs="386 amd64 arm64"
+#linux_archs="386 amd64 arm64 mips mipsle mips64 mips64le"
+#darwin_archs="amd64 arm64"
+#freebsd_archs="386 amd64 arm64"
 # 开始编译
 for os in windows linux darwin freebsd; do
     archs="${os}_archs"

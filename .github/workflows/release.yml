@@ -1,11 +1,11 @@
 
-name: Release (Windows amd64 via build.sh)
+name: Release (Windows amd64)
 
 on:
   push:
     tags:
-      - 'v*'
-  workflow_dispatch: {}
+      - 'v*'   # 自动触发：推送 tag，例如 v1.0.0
+  workflow_dispatch: {}  # 手动触发
 
 permissions:
   contents: write
@@ -13,6 +13,13 @@ permissions:
 jobs:
   build-and-release:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - goos: windows
+            goarch: amd64
+            suffix: .exe
 
     steps:
       - name: Checkout
@@ -29,20 +36,19 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y zip
 
-      - name: Make build script executable
-        run: chmod +x build.sh
-
-      - name: Limit build.sh to Windows amd64 only
+      - name: Build
+        env:
+          CGO_ENABLED: 0
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
         run: |
-          # 仅保留 windows amd64；其他平台清空，避免循环执行
-          sed -i 's/^windows_archs=.*/windows_archs="amd64"/' build.sh
-          sed -i 's/^linux_archs=.*/linux_archs=""/' build.sh
-          sed -i 's/^darwin_archs=.*/darwin_archs=""/' build.sh
-          sed -i 's/^freebsd_archs=.*/freebsd_archs=""/' build.sh
-
-      - name: Build with script
-        run: ./build.sh
-        shell: bash
+          mkdir -p build
+          cd src
+          OUT="../build/unicomMonitor_${{ matrix.goos }}_${{ matrix.goarch }}${{ matrix.suffix }}"
+          go build -ldflags="-w -s" -trimpath -o "$OUT"
+          cd ..
+          zip -j "${OUT}.zip" "$OUT"
+          rm "$OUT"
 
       - name: Create Release and upload assets
         uses: softprops/action-gh-release@v2

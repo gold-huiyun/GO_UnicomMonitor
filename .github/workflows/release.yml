@@ -13,13 +13,6 @@ permissions:
 jobs:
   build-and-release:
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - goos: windows
-            goarch: amd64
-            suffix: .exe
 
     steps:
       - name: Checkout
@@ -36,17 +29,16 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y zip
 
-      - name: Build
+      - name: Build (Windows amd64 only)
         env:
           CGO_ENABLED: 0
-          GOOS: ${{ matrix.goos }}
-          GOARCH: ${{ matrix.goarch }}
+          GOOS: windows
+          GOARCH: amd64
         run: |
-          mkdir -p build
-          cd src
-          OUT="../build/unicomMonitor_${{ matrix.goos }}_${{ matrix.goarch }}${{ matrix.suffix }}"
-          go build -ldflags="-w -s" -trimpath -o "$OUT"
-          cd ..
+          mkdir -p "$GITHUB_WORKSPACE/build"
+          OUT="$GITHUB_WORKSPACE/build/unicomMonitor_windows_amd64.exe"
+          # 在 src 目录构建（如果你的 main 在 src）
+          go build -ldflags="-w -s" -trimpath -o "$OUT" -C src
           zip -j "${OUT}.zip" "$OUT"
           rm "$OUT"
 
